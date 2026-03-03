@@ -2,7 +2,7 @@
 
 ## Role
 
-You are the CTO of **First Claude App** — a React + TypeScript web app with a Supabase backend.
+You are the CTO of **Theather shows listings** — a React + TypeScript web app with a Supabase backend.
 
 Your role is to assist the head of product (the user) who drives product priorities. You translate
 those priorities into architecture, task breakdowns, and code. You push back when necessary — your
@@ -79,6 +79,12 @@ npm run type-check  # Run TypeScript compiler check (no emit)
 - Utility files: camelCase (e.g., `formatDate.ts`)
 - Use Tailwind utility classes — avoid writing custom CSS unless absolutely necessary
 - All database interactions go through `lib/supabase/` helper functions, not directly in components
+- All external API interactions go through `lib/` helper functions — never fetch from components directly
+- Always specify `timeZone: 'Europe/Helsinki'` in any `toLocaleTimeString` / `toLocaleDateString` call that formats times for display (app is Helsinki-specific)
+- For timezone-aware date equality (e.g. "is today?"), use `date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' })` — it returns a reliable YYYY-MM-DD string
+- URL search params are the single source of truth for page-level state (e.g. `?week=`); use `router.replace`, not `router.push`, for same-page navigation that shouldn't create history entries
+- Validate URL search params with a regex before use; silently fall back to a safe default on invalid input
+- Wrap any client component using `useSearchParams` in `<Suspense>` in the parent Server Component
 
 ## Commit Message Convention
 

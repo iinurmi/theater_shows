@@ -40,6 +40,36 @@ migration later and to stay compatible with the latest `@supabase/ssr` client.
 
 ---
 
+## 2026-03-03 — Helsinki theater listings: live API, no Supabase, no cache
+
+**Why:** The City of Helsinki Linked Events API is free, requires no auth, and updates hourly. Storing data in Supabase would add infra cost, a sync job, and stale-data risk with no benefit at this scale. `cache: 'no-store'` on every fetch keeps data fresh without complexity.
+
+**Rule:** Theater show data always comes directly from `https://api.hel.fi/linkedevents/v1/`. Do not cache, proxy, or store it.
+
+---
+
+## 2026-03-03 — Week view only; URL-driven via `?week=YYYY-WNN`
+
+**Why:** Always showing Mon–Sun keeps the UI simple (no day/week toggle state). Storing the selected week in the URL (`?week=2026-W10`) enables bookmarking, sharing, and server-side fetching without any client state management.
+
+**Rule:** Week selection lives in the URL only. No `useState` for the current week. Default to `getCurrentIsoWeek()` when the param is absent or malformed.
+
+---
+
+## 2026-03-03 — Run-period filter: discard events where duration > 24 h
+
+**Why:** The Linked Events API returns both discrete performances and open-ended "run-period" entries (e.g., "show runs Jan–Mar"). The only reliable signal is duration: real performances have a specific end time ≤ 24 h after start. Events without `end_time` or with duration > 24 h are dropped.
+
+---
+
+## 2026-03-03 — `sv-SE` locale for Helsinki timezone date comparison
+
+**Why:** To determine if a Date falls on "today" in Helsinki time (EET/EEST), we need a YYYY-MM-DD string in the `Europe/Helsinki` timezone. `toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' })` produces exactly that format reliably across all JS environments. Comparing these strings avoids clock-skew errors that would occur if using the UTC server's local midnight as the rollover point.
+
+**Rule:** For any "is today?" or date-equality check that must reflect Helsinki time, use `helsinkiDateString(date)` from `DaySection.tsx` or an equivalent.
+
+---
+
 ## 2026-03-01 — Named exports for all React components
 
 **Why:** Consistent with TypeScript best practices and easier to tree-shake. Default exports make
