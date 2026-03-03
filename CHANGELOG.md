@@ -7,6 +7,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ### Added
 
+- `lib/venues.ts` — maps LinkedEvents venue IDs to curated theater/stage display names; used as override layer on top of raw API names
+- `stage` field on `Show` type (optional); populated from `VENUES` when venue ID is known
+- ShowCard now displays stage alongside theater when present (e.g., `Helsingin Kaupunginteatteri · Arena-näyttämö`)
+- `id` field on `LinkedEvent.location` type to enable venue lookups
+
+### Fixed
+
+- Duration guard in run-period filter now checks both `start_time` and `end_time` before computing duration
+
+---
+
+### Added
+
 - Helsinki theater show listings page (`/`) — public, mobile-first, no auth required
 - Week view (Mon–Sun) with day grouping; today's section highlighted in amber
 - `?week=YYYY-WNN` URL param drives week selection; bookmarkable, SSR-compatible

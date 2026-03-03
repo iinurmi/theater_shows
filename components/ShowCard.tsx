@@ -32,8 +32,10 @@ export function ShowCard({ show }: ShowCardProps) {
       {/* Show name */}
       <span className="flex-1 text-sm font-medium leading-snug">{show.name}</span>
 
-      {/* Theater name */}
-      <span className="shrink-0 text-xs text-gray-400">{show.theater}</span>
+      {/* Theater name (with optional stage) */}
+      <span className="shrink-0 text-xs text-gray-400">
+        {show.stage ? `${show.theater} · ${show.stage}` : show.theater}
+      </span>
     </li>
   );
 }

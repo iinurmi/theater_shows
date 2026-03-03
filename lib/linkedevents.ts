@@ -4,11 +4,16 @@
  * Docs: https://api.hel.fi/linkedevents/v1/
  *
  * Fetches theater performances for a given ISO week and maps them to the
- * internal `Show` type. Run-period entries (duration > 24 h) are filtered out.
+ * internal `Show` type. Queries by keyword (yso:p2315) across all Helsinki
+ * venues. Run-period entries (duration > 24 h) are filtered out.
+ *
+ * Where a venue ID matches a known entry in VENUES, the display name is
+ * overridden with our curated theater/stage labels.
  */
 
 import type { LinkedEvent, LinkedEventsResponse, Show } from '@/types/show';
 import { getWeekBounds } from '@/lib/week';
+import { VENUES } from '@/lib/venues';
 
 const BASE_URL = 'https://api.hel.fi/linkedevents/v1/event/';
 
@@ -21,10 +26,7 @@ const THEATER_KEYWORD = 'yso:p2315';
 /** 24 hours in milliseconds — used to discard run-period entries. */
 const MAX_DURATION_MS = 24 * 60 * 60 * 1000;
 
-/**
- * Build the Linked Events query URL for a given date range.
- * `include=location` is required to get the venue name in the response.
- */
+/** Build the Linked Events query URL for a given date range and page. */
 function buildUrl(start: Date, end: Date, page: number): string {
   const params = new URLSearchParams({
     keyword: THEATER_KEYWORD,
@@ -40,7 +42,7 @@ function buildUrl(start: Date, end: Date, page: number): string {
 
 /**
  * Pick the best available localised string from a name map.
- * Preference order: Finnish → English → Swedish → first available → fallback.
+ * Preference order: Finnish → English → Swedish → fallback.
  */
 function pickName(
   nameMap: { fi?: string; en?: string; sv?: string } | undefined | null,
@@ -54,9 +56,13 @@ function pickName(
 function toShow(event: LinkedEvent): Show | null {
   if (!event.start_time || !event.end_time) return null;
 
+  const locationId = event.location?.id;
+  const venueConfig = locationId ? VENUES[locationId] : undefined;
+
   return {
     name: pickName(event.name, 'Unnamed show'),
-    theater: pickName(event.location?.name, 'Unknown venue'),
+    theater: venueConfig?.theater ?? pickName(event.location?.name, 'Unknown venue'),
+    stage: venueConfig?.stage,
     startTime: event.start_time,
     endTime: event.end_time,
   };
@@ -79,10 +85,7 @@ export async function fetchShowsForWeek(isoWeek: string): Promise<Show[]> {
 
   while (hasMore) {
     const url = buildUrl(start, end, page);
-    const response = await fetch(url, {
-      // No caching — data is live and updated hourly per the plan spec
-      cache: 'no-store',
-    });
+    const response = await fetch(url, { cache: 'no-store' });
 
     if (!response.ok) {
       throw new Error(
@@ -106,7 +109,7 @@ export async function fetchShowsForWeek(isoWeek: string): Promise<Show[]> {
 
     for (const event of payload.data) {
       // Skip run-period entries: discard if duration > 24 hours
-      if (event.end_time) {
+      if (event.start_time && event.end_time) {
         const durationMs =
           new Date(event.end_time).getTime() - new Date(event.start_time).getTime();
         if (durationMs > MAX_DURATION_MS) continue;

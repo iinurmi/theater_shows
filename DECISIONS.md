@@ -70,6 +70,16 @@ migration later and to stay compatible with the latest `@supabase/ssr` client.
 
 ---
 
+## 2026-03-03 — Location-based querying abandoned; VENUES kept as display-name overrides
+
+**Why:** Attempted to query the Linked Events API by venue location ID (e.g., `tprek:20879` for Kansallisteatteri) instead of keyword, so theaters that don't tag with `yso:p2315` would appear. Confirmed via live API testing that the major Helsinki theaters (Kansallisteatteri, Kaupunginteatteri, etc.) only post **season/run-period entries** to Linked Events — one event covering the entire run (Jan–May), not individual nightly performances. The existing 24-hour duration filter correctly discards these, leaving zero results.
+
+The `yso:p2315` keyword query is the only reliable way to get individual show instances; those come from smaller/different venues that do post discrete performances.
+
+**Rule:** `lib/venues.ts` is kept as a **display-name override map only** — not used for filtering. If a venue in the list ever appears in a keyword-based result, it gets a clean curated name and optional stage label. Do not add location-based filtering to API queries.
+
+---
+
 ## 2026-03-01 — Named exports for all React components
 
 **Why:** Consistent with TypeScript best practices and easier to tree-shake. Default exports make

@@ -5,6 +5,7 @@
 export type Show = {
   name: string;
   theater: string;
+  stage?: string;
   startTime: string; // ISO 8601
   endTime: string; // ISO 8601
 };
@@ -24,6 +25,7 @@ export type LinkedEvent = {
   start_time: string; // ISO 8601
   end_time: string | null; // ISO 8601 or null
   location: {
+    id?: string;
     name?: {
       fi?: string;
       en?: string;

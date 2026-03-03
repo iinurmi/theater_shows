@@ -109,7 +109,10 @@ Follow the browser auth flow to link your Anthropic account.
       "Bash(git init)",
       "Bash(git remote*)",
       "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git --version)",
+      "Bash(npm install)",
+      "WebFetch(domain:api.hel.fi)"
     ],
     "deny": [
       "Bash(rm -rf *)",
