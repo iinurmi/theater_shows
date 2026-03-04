@@ -19,6 +19,7 @@ function formatDayLabel(date: Date): string {
     weekday: 'long',
     day: 'numeric',
     month: 'short',
+    timeZone: 'Europe/Helsinki',
   });
 }
 

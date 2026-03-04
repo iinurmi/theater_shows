@@ -5,16 +5,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## [Unreleased]
 
-### Added
+### Changed
 
-- `lib/venues.ts` — maps LinkedEvents venue IDs to curated theater/stage display names; used as override layer on top of raw API names
-- `stage` field on `Show` type (optional); populated from `VENUES` when venue ID is known
-- ShowCard now displays stage alongside theater when present (e.g., `Helsingin Kaupunginteatteri · Arena-näyttämö`)
-- `id` field on `LinkedEvent.location` type to enable venue lookups
+- API query switched from keyword (`yso:p2315`) to venue location IDs; removes dependency on inconsistent publisher tagging — venues now always appear regardless of how they tag events
+- Stage names read from `location_extra_info.fi` in the API response instead of hardcoded in `VENUES`
+- `VenueConfig.stage` field removed; `VENUES` is now display-name overrides only
+- `Show.endTime` is now optional; events without an end time are included (start time shown only)
 
 ### Fixed
 
-- Duration guard in run-period filter now checks both `start_time` and `end_time` before computing duration
+- Kaupunginteatteri individual performances now appear — API publishes them with `end_time: null`, which was previously discarding all of them
+- Day header could show wrong calendar day near midnight on UTC server; added `timeZone: 'Europe/Helsinki'` to `formatDayLabel`
+- Removed debug `console.log` statements left in production code paths
+
+### Removed
+
+- Savoy-teatteri, Stoa, Vuotalo from `VENUES` — multi-purpose venues produce too much non-theater noise
+- `HelloWorld` smoke-test component
 
 ---
 

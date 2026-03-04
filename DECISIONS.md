@@ -70,13 +70,21 @@ migration later and to stay compatible with the latest `@supabase/ssr` client.
 
 ---
 
-## 2026-03-03 — Location-based querying abandoned; VENUES kept as display-name overrides
+## 2026-03-04 — Location-based API querying replaces keyword-based
 
-**Why:** Attempted to query the Linked Events API by venue location ID (e.g., `tprek:20879` for Kansallisteatteri) instead of keyword, so theaters that don't tag with `yso:p2315` would appear. Confirmed via live API testing that the major Helsinki theaters (Kansallisteatteri, Kaupunginteatteri, etc.) only post **season/run-period entries** to Linked Events — one event covering the entire run (Jan–May), not individual nightly performances. The existing 24-hour duration filter correctly discards these, leaving zero results.
+**Why:** Keyword (`yso:p2315`) was unreliable — major theaters (Kansallisteatteri, Kaupunginteatteri) don't consistently tag their events with the theater keyword, so they were invisible in listings. Querying by location ID (`tprek:XXXXX`) gives guaranteed coverage for dedicated theater venues regardless of tagging.
 
-The `yso:p2315` keyword query is the only reliable way to get individual show instances; those come from smaller/different venues that do post discrete performances.
+Multi-purpose venues (Savoy-teatteri, Stoa, Vuotalo) removed entirely — they produce too much non-theater noise (jazz, lectures, film).
 
-**Rule:** `lib/venues.ts` is kept as a **display-name override map only** — not used for filtering. If a venue in the list ever appears in a keyword-based result, it gets a clean curated name and optional stage label. Do not add location-based filtering to API queries.
+**Rule:** API query uses `location=<venue IDs>`. `Object.keys(VENUES)` builds the param automatically — adding a venue to `venues.ts` is the only change needed to include it. Do not add keyword-based filtering back.
+
+---
+
+## 2026-03-04 — `Show.endTime` is optional; events with null end_time are shown
+
+**Why:** Several Helsinki theater publishers (including all Kaupunginteatteri venues) publish individual performances with `start_time` set but `end_time: null`. The previous null guard in `toShow()` discarded all such events, hiding all Kaupunginteatteri shows. The run-period filter (`duration > 24h`) already guards against season-span entries — a separate `end_time` presence check is redundant.
+
+**Rule:** `Show.endTime` is `string | undefined`. When absent, show only start time in the UI. Do not require `end_time` to include an event.
 
 ---
 

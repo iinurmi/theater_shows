@@ -4,11 +4,13 @@
  * Docs: https://api.hel.fi/linkedevents/v1/
  *
  * Fetches theater performances for a given ISO week and maps them to the
- * internal `Show` type. Queries by keyword (yso:p2315) across all Helsinki
- * venues. Run-period entries (duration > 24 h) are filtered out.
+ * internal `Show` type. Queries by location IDs derived from the VENUES map,
+ * which gives complete coverage for dedicated theater venues regardless of
+ * how event publishers tag their events. Run-period entries (duration > 24 h)
+ * are filtered out.
  *
- * Where a venue ID matches a known entry in VENUES, the display name is
- * overridden with our curated theater/stage labels.
+ * Stage names are read from `location_extra_info.fi` in the API response
+ * (e.g. "Suuri näyttämö") rather than being hardcoded in VENUES.
  */
 
 import type { LinkedEvent, LinkedEventsResponse, Show } from '@/types/show';
@@ -20,16 +22,17 @@ const BASE_URL = 'https://api.hel.fi/linkedevents/v1/event/';
 /** Max events per page — API maximum is 100. */
 const PAGE_SIZE = 100;
 
-/** yso:p2315 = "theater" keyword in the City of Helsinki ontology. */
-const THEATER_KEYWORD = 'yso:p2315';
-
 /** 24 hours in milliseconds — used to discard run-period entries. */
 const MAX_DURATION_MS = 24 * 60 * 60 * 1000;
 
 /** Build the Linked Events query URL for a given date range and page. */
 function buildUrl(start: Date, end: Date, page: number): string {
+  // Derive location IDs directly from the VENUES map so there is a single
+  // source of truth — adding/removing a venue in venues.ts automatically
+  // updates the query.
+  const locationParam = Object.keys(VENUES).join(',');
+
   const params = new URLSearchParams({
-    keyword: THEATER_KEYWORD,
     start: start.toISOString(),
     end: end.toISOString(),
     include: 'location',
@@ -37,7 +40,9 @@ function buildUrl(start: Date, end: Date, page: number): string {
     page_size: String(PAGE_SIZE),
     page: String(page),
   });
-  return `${BASE_URL}?${params.toString()}`;
+  // location is appended manually to avoid URLSearchParams encoding commas and
+  // colons in venue IDs (e.g. tprek:20879,tprek:9302 must not become tprek%3A20879%2C...).
+  return `${BASE_URL}?location=${locationParam}&${params.toString()}`;
 }
 
 /**
@@ -54,7 +59,7 @@ function pickName(
 
 /** Map a raw LinkedEvent to our internal Show type. Returns null if data is incomplete. */
 function toShow(event: LinkedEvent): Show | null {
-  if (!event.start_time || !event.end_time) return null;
+  if (!event.start_time) return null;
 
   const locationId = event.location?.id;
   const venueConfig = locationId ? VENUES[locationId] : undefined;
@@ -62,9 +67,11 @@ function toShow(event: LinkedEvent): Show | null {
   return {
     name: pickName(event.name, 'Unnamed show'),
     theater: venueConfig?.theater ?? pickName(event.location?.name, 'Unknown venue'),
-    stage: venueConfig?.stage,
+    // Stage name comes from the API's location_extra_info.fi field
+    // (e.g. "Suuri näyttämö"). Falls back to undefined when absent.
+    stage: event.location_extra_info?.fi ?? undefined,
     startTime: event.start_time,
-    endTime: event.end_time,
+    endTime: event.end_time ?? undefined,
   };
 }
 

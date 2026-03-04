@@ -7,7 +7,7 @@ export type Show = {
   theater: string;
   stage?: string;
   startTime: string; // ISO 8601
-  endTime: string; // ISO 8601
+  endTime?: string; // ISO 8601 — absent when the API doesn't publish an end time
 };
 
 /**
@@ -32,6 +32,8 @@ export type LinkedEvent = {
       sv?: string;
     };
   } | null;
+  /** Stage/hall name returned by the API (e.g. "Suuri näyttämö"). */
+  location_extra_info: { fi?: string } | null;
 };
 
 /** Top-level Linked Events list-response envelope */
