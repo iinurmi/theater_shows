@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## [Unreleased]
 
+### Added
+- Show names link to the event info page when the Linked Events API provides a URL (`info_url` field); opens in new tab
+
+### Fixed
+- `LinkedEvent.start_time` typed as `string | null` to match actual API behaviour (was `string`)
+- Removed redundant `?? undefined` from `stage` field assignment in `toShow()`
+
 ### Changed
 
 - API query switched from keyword (`yso:p2315`) to venue location IDs; removes dependency on inconsistent publisher tagging — venues now always appear regardless of how they tag events

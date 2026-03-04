@@ -29,8 +29,19 @@ export function ShowCard({ show }: ShowCardProps) {
         {formatTime(show.startTime)}
       </span>
 
-      {/* Show name */}
-      <span className="flex-1 text-sm font-medium leading-snug">{show.name}</span>
+      {/* Show name — linked to info page when URL is available */}
+      {show.url ? (
+        <a
+          href={show.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 text-sm font-medium leading-snug hover:underline"
+        >
+          {show.name}
+        </a>
+      ) : (
+        <span className="flex-1 text-sm font-medium leading-snug">{show.name}</span>
+      )}
 
       {/* Theater name (with optional stage) */}
       <span className="shrink-0 text-xs text-gray-400">

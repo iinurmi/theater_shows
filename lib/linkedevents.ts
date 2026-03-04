@@ -64,14 +64,21 @@ function toShow(event: LinkedEvent): Show | null {
   const locationId = event.location?.id;
   const venueConfig = locationId ? VENUES[locationId] : undefined;
 
+  // Resolve the info URL using the same fi → en → sv preference as names.
+  // pickName returns a fallback string on miss, so we compare to detect absence.
+  const resolvedUrl = event.info_url
+    ? (event.info_url.fi ?? event.info_url.en ?? event.info_url.sv)
+    : undefined;
+
   return {
     name: pickName(event.name, 'Unnamed show'),
     theater: venueConfig?.theater ?? pickName(event.location?.name, 'Unknown venue'),
     // Stage name comes from the API's location_extra_info.fi field
     // (e.g. "Suuri näyttämö"). Falls back to undefined when absent.
-    stage: event.location_extra_info?.fi ?? undefined,
+    stage: event.location_extra_info?.fi,
     startTime: event.start_time,
     endTime: event.end_time ?? undefined,
+    url: resolvedUrl,
   };
 }
 
