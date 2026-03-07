@@ -11,8 +11,16 @@
 
 import { Suspense } from 'react';
 import type { Show } from '@/types/show';
-import { fetchShowsForWeek } from '@/lib/linkedevents';
-import { getCurrentIsoWeek, getDaysOfWeek, isSameDay } from '@/lib/week';
+import { fetchShowsForWeek, fetchShowsForDateRange } from '@/lib/linkedevents';
+import {
+  getCurrentIsoWeek,
+  getTodayHelsinki,
+  getDaysOfWeek,
+  getRollingWindowDays,
+  getRollingWindowBounds,
+  formatRollingWindowLabel,
+  isSameDay,
+} from '@/lib/week';
 import { WeekNav } from '@/components/WeekNav';
 import { ChildrenFilter } from '@/components/ChildrenFilter';
 import { DaySection } from '@/components/DaySection';
@@ -53,11 +61,26 @@ export default async function HomePage({ searchParams }: PageProps) {
   // Strictly validate the children param — only 'hide' is accepted
   const hideChildren = children === 'hide';
 
+  // Determine whether we're on the current ISO week to apply the rolling window.
+  // getTodayHelsinki() ensures the date is correct even between 00:00–03:00 Helsinki
+  // time when the UTC server clock is still on the previous calendar day.
+  const today = getTodayHelsinki();
+  const isCurrentWeek = isoWeek === getCurrentIsoWeek();
+
+  // Days to display — rolling (yesterday+8) for current week, fixed Mon–Sun otherwise
+  const days = isCurrentWeek ? getRollingWindowDays(today) : getDaysOfWeek(isoWeek);
+
   // Fetch shows server-side — no CORS issues, no client API exposure
   let shows: Show[] = [];
   let fetchError: string | null = null;
   try {
-    shows = await fetchShowsForWeek(isoWeek);
+    if (isCurrentWeek) {
+      // Rolling window may span two ISO weeks, so we pass explicit Date bounds
+      const { start, end } = getRollingWindowBounds(today);
+      shows = await fetchShowsForDateRange(start, end);
+    } else {
+      shows = await fetchShowsForWeek(isoWeek);
+    }
   } catch (err) {
     fetchError =
       err instanceof Error ? err.message : 'Failed to load shows. Please try again later.';
@@ -68,7 +91,6 @@ export default async function HomePage({ searchParams }: PageProps) {
     shows = shows.filter((s) => !s.isChildrensShow);
   }
 
-  const days = getDaysOfWeek(isoWeek);
   const showsByDay = groupShowsByDay(shows, days);
 
   return (
@@ -80,7 +102,10 @@ export default async function HomePage({ searchParams }: PageProps) {
 
       {/* Week navigation — client component, must be in Suspense */}
       <Suspense fallback={<div className="h-12" />}>
-        <WeekNav isoWeek={isoWeek} />
+        <WeekNav
+          isoWeek={isoWeek}
+          weekLabel={isCurrentWeek ? formatRollingWindowLabel(today) : undefined}
+        />
       </Suspense>
 
       {/* Children's show filter — client component, must be in Suspense */}

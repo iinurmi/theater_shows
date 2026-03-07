@@ -74,7 +74,7 @@ migration later and to stay compatible with the latest `@supabase/ssr` client.
 
 **Why:** To determine if a Date falls on "today" in Helsinki time (EET/EEST), we need a YYYY-MM-DD string in the `Europe/Helsinki` timezone. `toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' })` produces exactly that format reliably across all JS environments. Comparing these strings avoids clock-skew errors that would occur if using the UTC server's local midnight as the rollover point.
 
-**Rule:** For any "is today?" or date-equality check that must reflect Helsinki time, use `helsinkiDateString(date)` from `DaySection.tsx` or an equivalent.
+**Rule:** For any "is today?" or date-equality check that must reflect Helsinki time, use `toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' })`. To get today as a `Date` object server-side, use `getTodayHelsinki()` from `lib/week.ts` — never `new Date()` directly.
 
 ---
 
@@ -109,6 +109,14 @@ Multi-purpose venues (Savoy-teatteri, Stoa, Vuotalo) removed entirely — they p
 **Why:** Adding `include=keywords` as a second `include` param alongside `include=location` caused the LinkedEvents API to stop expanding the location object (it silently honoured only one). This broke venue resolution ("Unknown venue" for all shows). Non-expanded keyword objects already contain the `id` field (e.g. `"id": "yso:p4354"`) needed for children's show detection — expanding keywords is unnecessary.
 
 **Rule:** Only `include=location` is passed to the Linked Events API. Do not add `include=keywords`; it breaks venue lookup.
+
+---
+
+## 2026-03-07 — Rolling 8-day window for current week view
+
+**Why:** Fixed Mon–Sun hides shows "on right now" mid-week and doesn't surface upcoming shows across the weekend boundary. An 8-day window (yesterday + today + 6 ahead) shows what's relevant without navigation. Past/future weeks keep Mon–Sun — historical browsing benefits from a stable, predictable grid.
+
+**Rule:** When `isoWeek === getCurrentIsoWeek()`, use `getRollingWindowDays(today)` for displayed days and `getRollingWindowBounds(today)` for the API fetch. The `?week=` URL param is unchanged. The window may span two ISO weeks, so the fetch uses `fetchShowsForDateRange(start, end)` with explicit `Date` bounds rather than `fetchShowsForWeek`. Always derive `today` from `getTodayHelsinki()`, not `new Date()`.
 
 ---
 

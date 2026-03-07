@@ -55,9 +55,23 @@ export function formatIsoWeek(date: Date): string {
   return `${year}-W${String(week).padStart(2, '0')}`;
 }
 
-/** Return the ISO week string for today's date. */
+/**
+ * Return a Date representing midnight (local) of today's calendar date in Helsinki.
+ *
+ * `new Date()` on a UTC server returns UTC midnight, which can be the *previous*
+ * calendar day from a Helsinki user's perspective between 00:00–02:00/03:00 Helsinki.
+ * This helper derives the correct Helsinki date string first, then constructs a
+ * Date at local midnight so all subsequent `setDate` arithmetic stays correct.
+ */
+export function getTodayHelsinki(): Date {
+  const str = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' });
+  // `YYYY-MM-DDT00:00:00` without Z is parsed as local time (not UTC)
+  return new Date(`${str}T00:00:00`);
+}
+
+/** Return the ISO week string for today's date in Helsinki local time. */
 export function getCurrentIsoWeek(): string {
-  return formatIsoWeek(new Date());
+  return formatIsoWeek(getTodayHelsinki());
 }
 
 /**
@@ -114,12 +128,70 @@ export function formatWeekLabel(isoWeek: string): string {
     d.toLocaleDateString('en-GB', {
       month: 'short',
       day: 'numeric',
+      timeZone: 'Europe/Helsinki',
       ...(includeYear ? { year: 'numeric' } : {}),
     });
 
   // Only include year on the monday side when year differs (rare edge case)
   const sameYear = monday.getFullYear() === sunday.getFullYear();
   return `${fmt(monday, !sameYear)} – ${fmt(sunday, true)}`;
+}
+
+/**
+ * Format a human-readable label for the rolling window (e.g. "6 Mar – 13 Mar 2026").
+ * Derived from `getRollingWindowDays` so the range always matches what is displayed.
+ */
+export function formatRollingWindowLabel(today: Date): string {
+  const days = getRollingWindowDays(today);
+  const first = days[0];
+  const last = days[days.length - 1];
+
+  const fmt = (d: Date, includeYear: boolean) =>
+    d.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'Europe/Helsinki',
+      ...(includeYear ? { year: 'numeric' } : {}),
+    });
+
+  const sameYear = first.getFullYear() === last.getFullYear();
+  return `${fmt(first, !sameYear)} – ${fmt(last, true)}`;
+}
+
+/**
+ * Return an array of 8 Date objects for the rolling window anchored on `today`:
+ *   yesterday, today, and the 6 days after today (8 days total).
+ *
+ * Each date is set to midnight local time.
+ * Used when the active week is the current ISO week.
+ */
+export function getRollingWindowDays(today: Date): Date[] {
+  return Array.from({ length: 8 }, (_, i) => {
+    const d = new Date(today);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(today.getDate() - 1 + i); // start from yesterday (i=0)
+    return d;
+  });
+}
+
+/**
+ * Return { start, end } ISO date strings (YYYY-MM-DD) for the rolling window
+ * anchored on `today` (yesterday … today+6).
+ *
+ * These strings are used to build the Linked Events API date-range query.
+ * Using YYYY-MM-DD (Helsinki local date) avoids UTC-offset surprises because
+ * the API treats bare dates as Helsinki midnight.
+ */
+export function getRollingWindowBounds(today: Date): { start: Date; end: Date } {
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(today.getDate() - 1); // yesterday
+
+  const end = new Date(today);
+  end.setHours(23, 59, 59, 999);
+  end.setDate(today.getDate() + 6); // today+6
+
+  return { start, end };
 }
 
 /** Return true if two dates fall on the same calendar day (local time). */

@@ -82,6 +82,7 @@ npm run type-check  # Run TypeScript compiler check (no emit)
 - All external API interactions go through `lib/` helper functions — never fetch from components directly
 - Always specify `timeZone: 'Europe/Helsinki'` in any `toLocaleTimeString` / `toLocaleDateString` call that formats times for display (app is Helsinki-specific)
 - For timezone-aware date equality (e.g. "is today?"), use `date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' })` — it returns a reliable YYYY-MM-DD string
+- When you need today's date as a `Date` object server-side, use `getTodayHelsinki()` from `lib/week.ts` — never `new Date()` directly (UTC server is behind Helsinki by 2–3 h, causing wrong calendar date between 00:00–03:00 Helsinki)
 - URL search params are the single source of truth for page-level state (e.g. `?week=`); use `router.replace`, not `router.push`, for same-page navigation that shouldn't create history entries
 - Validate URL search params with a regex before use; silently fall back to a safe default on invalid input
 - Wrap any client component using `useSearchParams` in `<Suspense>` in the parent Server Component

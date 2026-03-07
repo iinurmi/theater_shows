@@ -13,9 +13,11 @@ import { prevWeek, nextWeek, formatWeekLabel } from '@/lib/week';
 
 type WeekNavProps = {
   isoWeek: string; // e.g. "2026-W10"
+  /** Optional label override — used when the current week shows a rolling window range. */
+  weekLabel?: string;
 };
 
-export function WeekNav({ isoWeek }: WeekNavProps) {
+export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -40,8 +42,8 @@ export function WeekNav({ isoWeek }: WeekNavProps) {
         ←
       </button>
 
-      {/* Week label */}
-      <span className="text-base font-semibold">{formatWeekLabel(isoWeek)}</span>
+      {/* Week label — rolling range for current week, fixed Mon–Sun otherwise */}
+      <span className="text-base font-semibold">{weekLabel ?? formatWeekLabel(isoWeek)}</span>
 
       {/* Next week */}
       <button

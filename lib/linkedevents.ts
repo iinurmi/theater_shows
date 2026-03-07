@@ -98,16 +98,14 @@ function toShow(event: LinkedEvent): Show | null {
 }
 
 /**
- * Fetch all theater shows for the given ISO week string (e.g. "2026-W10").
+ * Core paginator — fetches all shows within an explicit [start, end] Date range.
  *
  * Paginates through all pages automatically.
  * Filters out events with duration > 24 hours (run-period / season entries).
  *
  * @throws if the network request or JSON parsing fails.
  */
-export async function fetchShowsForWeek(isoWeek: string): Promise<Show[]> {
-  const { start, end } = getWeekBounds(isoWeek);
-
+async function fetchShowsForBounds(start: Date, end: Date): Promise<Show[]> {
   const shows: Show[] = [];
   let page = 1;
   let hasMore = true;
@@ -153,4 +151,21 @@ export async function fetchShowsForWeek(isoWeek: string): Promise<Show[]> {
   }
 
   return shows;
+}
+
+/**
+ * Fetch all theater shows for the given ISO week string (e.g. "2026-W10").
+ * Uses fixed Mon–Sun bounds derived from the ISO week.
+ */
+export async function fetchShowsForWeek(isoWeek: string): Promise<Show[]> {
+  const { start, end } = getWeekBounds(isoWeek);
+  return fetchShowsForBounds(start, end);
+}
+
+/**
+ * Fetch all theater shows for an arbitrary [start, end] Date range.
+ * Used for the rolling-window view on the current week, which may span two ISO weeks.
+ */
+export async function fetchShowsForDateRange(start: Date, end: Date): Promise<Show[]> {
+  return fetchShowsForBounds(start, end);
 }
