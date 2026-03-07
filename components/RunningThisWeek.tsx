@@ -40,7 +40,7 @@ export function RunningThisWeek({ rangeShows }: RunningThisWeekProps) {
   if (rangeShows.length === 0) return null;
 
   return (
-    <section aria-label="Currently running" className="mt-2 mb-4 rounded-lg bg-violet-50 px-3 py-3">
+    <section aria-label="Currently running" className="mt-2 mb-4 rounded-lg border border-violet-200 bg-violet-100 px-3 py-3">
       <h2 className="mb-1 text-sm font-medium uppercase tracking-wide text-gray-400">
         Currently running
       </h2>
@@ -52,26 +52,29 @@ export function RunningThisWeek({ rangeShows }: RunningThisWeekProps) {
         {rangeShows.map((show) => (
           <li
             key={`${show.rangeStart}-${show.name}-${show.theater}`}
-            className="flex items-baseline gap-3 border-b border-gray-100 py-2 last:border-0"
+            className="flex items-start gap-3 border-b border-gray-100 py-2 last:border-0"
           >
-            {/* Show name — linked to info page when URL is available */}
-            {show.url ? (
-              <a
-                href={show.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 text-sm font-medium leading-snug hover:underline"
-              >
-                {show.name}
-              </a>
-            ) : (
-              <span className="flex-1 text-sm font-medium leading-snug">{show.name}</span>
-            )}
+            {/* Name + venue stacked; takes all available width before the date */}
+            <div className="flex min-w-0 flex-1 flex-col">
+              {/* Show name — linked to info page when URL is available */}
+              {show.url ? (
+                <a
+                  href={show.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium leading-snug hover:underline"
+                >
+                  {show.name}
+                </a>
+              ) : (
+                <span className="text-sm font-medium leading-snug">{show.name}</span>
+              )}
 
-            {/* Theater name (with optional stage) */}
-            <span className="shrink-0 text-xs text-gray-400">
-              {show.stage ? `${show.theater} · ${show.stage}` : show.theater}
-            </span>
+              {/* Theater name (with optional stage) — wraps naturally within available space */}
+              <span className="mt-0.5 text-xs text-gray-400">
+                {show.stage ? `${show.theater} · ${show.stage}` : show.theater}
+              </span>
+            </div>
 
             {/* Date range label, e.g. "1.3.–1.5.2026" */}
             <span className="shrink-0 text-xs text-gray-400">

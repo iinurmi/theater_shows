@@ -140,6 +140,30 @@ Multi-purpose venues (Savoy-teatteri, Stoa, Vuotalo) removed entirely — they p
 
 ---
 
+## 2026-03-07 — Theater name prefix stripped at data layer, not render layer
+
+**Why:** The Linked Events API sometimes duplicates the theater name inside the stage field (e.g. stage `"Kansallisteatteri - Suuri näyttämö"` when theater is already `"Kansallisteatteri"`). Stripping at render time would require the fix in every component that displays venue info. Stripping in `extractCommonFields()` in `lib/linkedevents.ts` fixes it once for all consumers (`ShowCard`, `RunningThisWeek`, any future components).
+
+**Rule:** `stripTheaterPrefix(theater, stage)` in `lib/linkedevents.ts` is the single place for this cleanup. It checks common separators (` - `, ` · `, `: `, ` – `) case-insensitively. Do not add display-layer workarounds.
+
+---
+
+## 2026-03-07 — Venue text wraps to new line on mobile, not truncated
+
+**Why:** Truncation with ellipsis hid useful information (stage name, theater name) without giving the user a way to see it. Wrapping venue below the show name on mobile (stacked flex column) keeps all text visible and readable. On desktop (≥ sm breakpoint) name and venue sit side-by-side as before, capped at `max-w-[16rem]` so a very long venue string can't crowd the show name.
+
+**Rule:** `ShowCard` uses `flex-col` on mobile and `sm:flex-row` on desktop. `RunningThisWeek` always stacks name+venue (no sm row — date-range column already occupies the right). No `truncate` class on venue spans.
+
+---
+
+## 2026-03-07 — External fetch timeout: 8 s via AbortSignal.timeout()
+
+**Why:** Without a timeout, a slow or hung Linked Events API response blocks the Next.js server render indefinitely for every in-flight user request. `AbortSignal.timeout(ms)` is built-in to Node 17+ (no extra imports) and throws `AbortError` after the specified duration, which the existing `try/catch` in `page.tsx` converts to a user-facing error banner.
+
+**Rule:** All `fetch()` calls to external APIs use `signal: AbortSignal.timeout(8_000)`. 8 s is generous for a paginated JSON API; lower if the API proves consistently fast. See `FETCH_TIMEOUT_MS` constant in `lib/linkedevents.ts`.
+
+---
+
 ## 2026-03-01 — Named exports for all React components
 
 **Why:** Consistent with TypeScript best practices and easier to tree-shake. Default exports make

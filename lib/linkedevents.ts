@@ -25,6 +25,9 @@ const PAGE_SIZE = 100;
 /** 24 hours in milliseconds — threshold for classifying an event as a multi-day production run. */
 const MAX_DURATION_MS = 24 * 60 * 60 * 1000;
 
+/** Per-page fetch timeout in ms — prevents a slow/hung API from blocking the server render. */
+const FETCH_TIMEOUT_MS = 8_000;
+
 /** Build the Linked Events query URL for a given date range and page. */
 function buildUrl(start: Date, end: Date, page: number): string {
   // Derive location IDs directly from the VENUES map so there is a single
@@ -57,6 +60,23 @@ function pickName(
   return nameMap.fi ?? nameMap.en ?? nameMap.sv ?? fallback;
 }
 
+/**
+ * Strip the theater name prefix from a stage string when the API duplicates it.
+ * E.g. theater="Kansallisteatteri", stage="Kansallisteatteri - Suuri näyttämö"
+ * → "Suuri näyttämö".  Common separators: " - ", " · ", ": ", " – ".
+ */
+function stripTheaterPrefix(theater: string, stage: string | undefined): string | undefined {
+  if (!stage) return stage;
+  const separators = [' - ', ' · ', ': ', ' – '];
+  for (const sep of separators) {
+    const prefix = theater + sep;
+    if (stage.toLowerCase().startsWith(prefix.toLowerCase())) {
+      return stage.slice(prefix.length);
+    }
+  }
+  return stage;
+}
+
 /** YSO keyword ID that marks children's shows in the Helsinki open data taxonomy. */
 const CHILDRENS_SHOW_KEYWORD = 'yso:p4354';
 
@@ -81,10 +101,13 @@ function extractCommonFields(event: LinkedEvent): Pick<Show, 'name' | 'theater' 
     typeof event.audience_max_age === 'number' &&
     event.audience_max_age <= CHILDRENS_MAX_AGE;
 
+  const theater = venueConfig?.theater ?? pickName(event.location?.name, 'Unknown venue');
+  const rawStage = event.location_extra_info?.fi;
+
   return {
     name: pickName(event.name, 'Unnamed show'),
-    theater: venueConfig?.theater ?? pickName(event.location?.name, 'Unknown venue'),
-    stage: event.location_extra_info?.fi,
+    theater,
+    stage: stripTheaterPrefix(theater, rawStage),
     url: resolvedUrl,
     isChildrensShow: hasChildrensKeyword || hasChildrensAge,
   };
@@ -133,7 +156,10 @@ async function fetchShowsForBounds(start: Date, end: Date): Promise<FetchResult>
 
   while (hasMore) {
     const url = buildUrl(start, end, page);
-    const response = await fetch(url, { cache: 'no-store' });
+    const response = await fetch(url, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
 
     if (!response.ok) {
       throw new Error(

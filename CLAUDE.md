@@ -86,6 +86,7 @@ npm run type-check  # Run TypeScript compiler check (no emit)
 - URL search params are the single source of truth for page-level state (e.g. `?week=`); use `router.replace`, not `router.push`, for same-page navigation that shouldn't create history entries
 - Validate URL search params with a regex before use; silently fall back to a safe default on invalid input
 - Wrap any client component using `useSearchParams` in `<Suspense>` in the parent Server Component
+- All `fetch()` calls to external APIs must include `signal: AbortSignal.timeout(8_000)` to prevent hung server renders. The timeout throws an `AbortError` which is caught by the existing try/catch in `page.tsx`
 
 ## Commit Message Convention
 
