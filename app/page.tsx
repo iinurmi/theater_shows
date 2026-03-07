@@ -128,6 +128,9 @@ export default async function HomePage({ searchParams }: PageProps) {
         </p>
       )}
 
+      {/* Multi-day productions running during this week — shown above day sections */}
+      <RunningThisWeek rangeShows={rangeShows} />
+
       {/* One section per day of the week */}
       <div className="mt-2 flex flex-col gap-4">
         {days.map((day) => (
@@ -138,9 +141,6 @@ export default async function HomePage({ searchParams }: PageProps) {
           />
         ))}
       </div>
-
-      {/* Multi-day productions running during this week */}
-      <RunningThisWeek rangeShows={rangeShows} />
     </main>
   );
 }

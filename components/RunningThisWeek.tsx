@@ -40,12 +40,12 @@ export function RunningThisWeek({ rangeShows }: RunningThisWeekProps) {
   if (rangeShows.length === 0) return null;
 
   return (
-    <section aria-label="Running shows this week" className="mt-6">
+    <section aria-label="Running shows this week" className="mt-2 rounded-lg bg-slate-50 px-3 py-3">
       <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-gray-400">
         Running shows this week
       </h2>
 
-      <ul className="rounded-lg">
+      <ul>
         {rangeShows.map((show) => (
           <li
             key={`${show.rangeStart}-${show.name}-${show.theater}`}
