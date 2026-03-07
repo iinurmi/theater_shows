@@ -64,9 +64,11 @@ migration later and to stay compatible with the latest `@supabase/ssr` client.
 
 ---
 
-## 2026-03-03 — Run-period filter: discard events where duration > 24 h
+## 2026-03-07 — Run-period entries collected as `RangeShow`, shown in "Running this week" section
 
-**Why:** The Linked Events API returns both discrete performances and open-ended "run-period" entries (e.g., "show runs Jan–Mar"). The only reliable signal is duration: real performances have a specific end time ≤ 24 h after start. Events without `end_time` or with duration > 24 h are dropped.
+**Why:** The Linked Events API returns both discrete performances (duration ≤ 24 h) and open-ended "run-period" entries (e.g., "show runs 1.3.–1.5.2026", duration > 24 h). Previously these were discarded. They're now collected as `RangeShow` and displayed in a dedicated section below the daily calendar, giving users visibility into longer-running productions.
+
+**Rule:** Duration > 24 h → `toRangeShow()` → `RangeShow[]`. Duration ≤ 24 h → `toShow()` → `Show[]`. `fetchShowsForBounds` returns `{ shows, rangeShows }` (the `FetchResult` type). Dedup: any `RangeShow` whose `name` matches a timed `Show` in the same week is excluded (heuristic, acceptable false-positive rate). Children's filter applies to both lists.
 
 ---
 

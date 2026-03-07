@@ -24,4 +24,8 @@ export const VENUES: Record<string, VenueConfig> = {
   'tprek:20755': { theater: 'Svenska Teatern' },
   'tprek:20668': { theater: 'Aleksanterin teatteri' },
   'tprek:21070': { theater: 'Q-teatteri' },
+  'tprek:20956': { theater: 'KOM-teatteri' },
+  'tprek:20822': { theater: 'Peacock-teatteri' },
+  'tprek:21023': { theater: 'Teatteri Jurkka' },
+  'tprek:20634': { theater: 'KokoTeatteri' },
 };

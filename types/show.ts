@@ -15,6 +15,23 @@ export type Show = {
 };
 
 /**
+ * A multi-day theater production that runs across a date range (e.g. 1.3.–1.5.2026).
+ * These are events whose duration > 24 h in the Linked Events API — they represent
+ * the production run rather than individual performances.
+ */
+export type RangeShow = {
+  name: string;
+  theater: string;
+  stage?: string;
+  /** ISO 8601 — start of the production run */
+  rangeStart: string;
+  /** ISO 8601 — end of the production run */
+  rangeEnd: string;
+  url?: string;
+  isChildrensShow: boolean;
+};
+
+/**
  * Raw event shape from the Helsinki Linked Events API.
  * Only the fields we actually consume are declared here.
  * Reference: https://api.hel.fi/linkedevents/v1/

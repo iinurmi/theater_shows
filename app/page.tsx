@@ -10,7 +10,7 @@
  */
 
 import { Suspense } from 'react';
-import type { Show } from '@/types/show';
+import type { RangeShow, Show } from '@/types/show';
 import { fetchShowsForWeek, fetchShowsForDateRange } from '@/lib/linkedevents';
 import {
   getCurrentIsoWeek,
@@ -24,6 +24,7 @@ import {
 import { WeekNav } from '@/components/WeekNav';
 import { ChildrenFilter } from '@/components/ChildrenFilter';
 import { DaySection } from '@/components/DaySection';
+import { RunningThisWeek } from '@/components/RunningThisWeek';
 
 type PageProps = {
   searchParams: Promise<{ week?: string; children?: string }>;
@@ -72,14 +73,15 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   // Fetch shows server-side — no CORS issues, no client API exposure
   let shows: Show[] = [];
+  let rangeShows: RangeShow[] = [];
   let fetchError: string | null = null;
   try {
     if (isCurrentWeek) {
       // Rolling window may span two ISO weeks, so we pass explicit Date bounds
       const { start, end } = getRollingWindowBounds(today);
-      shows = await fetchShowsForDateRange(start, end);
+      ({ shows, rangeShows } = await fetchShowsForDateRange(start, end));
     } else {
-      shows = await fetchShowsForWeek(isoWeek);
+      ({ shows, rangeShows } = await fetchShowsForWeek(isoWeek));
     }
   } catch (err) {
     fetchError =
@@ -89,7 +91,13 @@ export default async function HomePage({ searchParams }: PageProps) {
   // Apply children's show filter after fetch, before rendering
   if (hideChildren) {
     shows = shows.filter((s) => !s.isChildrensShow);
+    rangeShows = rangeShows.filter((s) => !s.isChildrensShow);
   }
+
+  // Dedup: remove range shows whose name already appears as a timed performance
+  // in the week (heuristic — same name at different venues would be incorrectly deduped).
+  const timedShowNames = new Set(shows.map((s) => s.name));
+  rangeShows = rangeShows.filter((s) => !timedShowNames.has(s.name));
 
   const showsByDay = groupShowsByDay(shows, days);
 
@@ -130,6 +138,9 @@ export default async function HomePage({ searchParams }: PageProps) {
           />
         ))}
       </div>
+
+      {/* Multi-day productions running during this week */}
+      <RunningThisWeek rangeShows={rangeShows} />
     </main>
   );
 }

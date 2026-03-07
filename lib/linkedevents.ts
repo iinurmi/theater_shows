@@ -7,13 +7,13 @@
  * internal `Show` type. Queries by location IDs derived from the VENUES map,
  * which gives complete coverage for dedicated theater venues regardless of
  * how event publishers tag their events. Run-period entries (duration > 24 h)
- * are filtered out.
+ * are collected as RangeShow rather than discarded.
  *
  * Stage names are read from `location_extra_info.fi` in the API response
  * (e.g. "Suuri näyttämö") rather than being hardcoded in VENUES.
  */
 
-import type { LinkedEvent, LinkedEventsResponse, Show } from '@/types/show';
+import type { LinkedEvent, LinkedEventsResponse, RangeShow, Show } from '@/types/show';
 import { getWeekBounds } from '@/lib/week';
 import { VENUES } from '@/lib/venues';
 
@@ -22,7 +22,7 @@ const BASE_URL = 'https://api.hel.fi/linkedevents/v1/event/';
 /** Max events per page — API maximum is 100. */
 const PAGE_SIZE = 100;
 
-/** 24 hours in milliseconds — used to discard run-period entries. */
+/** 24 hours in milliseconds — threshold for classifying an event as a multi-day production run. */
 const MAX_DURATION_MS = 24 * 60 * 60 * 1000;
 
 /** Build the Linked Events query URL for a given date range and page. */
@@ -63,21 +63,18 @@ const CHILDRENS_SHOW_KEYWORD = 'yso:p4354';
 /** Max audience age that we treat as a children's show when `audience_max_age` is set. */
 const CHILDRENS_MAX_AGE = 12;
 
-/** Map a raw LinkedEvent to our internal Show type. Returns null if data is incomplete. */
-function toShow(event: LinkedEvent): Show | null {
-  if (!event.start_time) return null;
-
+/**
+ * Shared helper: extract venue info and children's show flags from a raw event.
+ * Used by both toShow and toRangeShow to avoid duplication.
+ */
+function extractCommonFields(event: LinkedEvent): Pick<Show, 'name' | 'theater' | 'stage' | 'url' | 'isChildrensShow'> {
   const locationId = event.location?.id;
   const venueConfig = locationId ? VENUES[locationId] : undefined;
 
-  // Resolve the info URL using the same fi → en → sv preference as names.
-  // pickName returns a fallback string on miss, so we compare to detect absence.
   const resolvedUrl = event.info_url
     ? (event.info_url.fi ?? event.info_url.en ?? event.info_url.sv)
     : undefined;
 
-  // Detect children's shows via keyword tag OR max-age cap.
-  // API tagging is inconsistent, so we use both signals; some shows may still slip through.
   const hasChildrensKeyword =
     event.keywords?.some((kw) => kw.id === CHILDRENS_SHOW_KEYWORD) ?? false;
   const hasChildrensAge =
@@ -87,26 +84,50 @@ function toShow(event: LinkedEvent): Show | null {
   return {
     name: pickName(event.name, 'Unnamed show'),
     theater: venueConfig?.theater ?? pickName(event.location?.name, 'Unknown venue'),
-    // Stage name comes from the API's location_extra_info.fi field
-    // (e.g. "Suuri näyttämö"). Falls back to undefined when absent.
     stage: event.location_extra_info?.fi,
-    startTime: event.start_time,
-    endTime: event.end_time ?? undefined,
     url: resolvedUrl,
     isChildrensShow: hasChildrensKeyword || hasChildrensAge,
   };
 }
 
+/** Map a raw LinkedEvent to our internal Show type. Returns null if data is incomplete. */
+function toShow(event: LinkedEvent): Show | null {
+  if (!event.start_time) return null;
+  return {
+    ...extractCommonFields(event),
+    startTime: event.start_time,
+    endTime: event.end_time ?? undefined,
+  };
+}
+
+/**
+ * Map a raw LinkedEvent to a RangeShow (multi-day production).
+ * Returns null if start_time or end_time is absent.
+ */
+function toRangeShow(event: LinkedEvent): RangeShow | null {
+  if (!event.start_time || !event.end_time) return null;
+  return {
+    ...extractCommonFields(event),
+    rangeStart: event.start_time,
+    rangeEnd: event.end_time,
+  };
+}
+
+/** Return type for the core paginator — timed performances and multi-day range shows. */
+type FetchResult = { shows: Show[]; rangeShows: RangeShow[] };
+
 /**
  * Core paginator — fetches all shows within an explicit [start, end] Date range.
  *
  * Paginates through all pages automatically.
- * Filters out events with duration > 24 hours (run-period / season entries).
+ * Events with duration > 24 hours are collected as RangeShow (multi-day productions)
+ * rather than being discarded.
  *
  * @throws if the network request or JSON parsing fails.
  */
-async function fetchShowsForBounds(start: Date, end: Date): Promise<Show[]> {
+async function fetchShowsForBounds(start: Date, end: Date): Promise<FetchResult> {
   const shows: Show[] = [];
+  const rangeShows: RangeShow[] = [];
   let page = 1;
   let hasMore = true;
 
@@ -135,11 +156,16 @@ async function fetchShowsForBounds(start: Date, end: Date): Promise<Show[]> {
     const payload = json as LinkedEventsResponse;
 
     for (const event of payload.data) {
-      // Skip run-period entries: discard if duration > 24 hours
       if (event.start_time && event.end_time) {
         const durationMs =
           new Date(event.end_time).getTime() - new Date(event.start_time).getTime();
-        if (durationMs > MAX_DURATION_MS) continue;
+
+        if (durationMs > MAX_DURATION_MS) {
+          // Multi-day production run — collect as RangeShow
+          const rangeShow = toRangeShow(event);
+          if (rangeShow) rangeShows.push(rangeShow);
+          continue;
+        }
       }
 
       const show = toShow(event);
@@ -150,14 +176,14 @@ async function fetchShowsForBounds(start: Date, end: Date): Promise<Show[]> {
     page++;
   }
 
-  return shows;
+  return { shows, rangeShows };
 }
 
 /**
  * Fetch all theater shows for the given ISO week string (e.g. "2026-W10").
  * Uses fixed Mon–Sun bounds derived from the ISO week.
  */
-export async function fetchShowsForWeek(isoWeek: string): Promise<Show[]> {
+export async function fetchShowsForWeek(isoWeek: string): Promise<FetchResult> {
   const { start, end } = getWeekBounds(isoWeek);
   return fetchShowsForBounds(start, end);
 }
@@ -166,6 +192,6 @@ export async function fetchShowsForWeek(isoWeek: string): Promise<Show[]> {
  * Fetch all theater shows for an arbitrary [start, end] Date range.
  * Used for the rolling-window view on the current week, which may span two ISO weeks.
  */
-export async function fetchShowsForDateRange(start: Date, end: Date): Promise<Show[]> {
+export async function fetchShowsForDateRange(start: Date, end: Date): Promise<FetchResult> {
   return fetchShowsForBounds(start, end);
 }

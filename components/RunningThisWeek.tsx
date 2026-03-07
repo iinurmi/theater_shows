@@ -1,0 +1,82 @@
+/**
+ * RunningThisWeek — server component.
+ *
+ * Renders a "Running shows this week" section for multi-day theater productions
+ * that span the viewed week (e.g. a run from 1.3.–1.5.2026).
+ *
+ * These are events whose duration > 24 h in the Linked Events API — they represent
+ * the production run rather than individual timed performances.
+ *
+ * Renders nothing when the list is empty.
+ */
+
+import type { RangeShow } from '@/types/show';
+
+type RunningThisWeekProps = {
+  rangeShows: RangeShow[];
+};
+
+/**
+ * Format an ISO 8601 date string as Finnish short date: D.M.YYYY (e.g. "1.3.2026").
+ * Uses 'fi-FI' locale which produces the correct day-first format without leading zeros.
+ */
+function formatFinnishDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('fi-FI', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    timeZone: 'Europe/Helsinki',
+  });
+}
+
+/** Format a date range label, e.g. "1.3.–1.5.2026". */
+function formatRangeLabel(rangeStart: string, rangeEnd: string): string {
+  const start = formatFinnishDate(rangeStart);
+  const end = formatFinnishDate(rangeEnd);
+  return `${start}–${end}`;
+}
+
+export function RunningThisWeek({ rangeShows }: RunningThisWeekProps) {
+  if (rangeShows.length === 0) return null;
+
+  return (
+    <section aria-label="Running shows this week" className="mt-6">
+      <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-gray-400">
+        Running shows this week
+      </h2>
+
+      <ul className="rounded-lg">
+        {rangeShows.map((show) => (
+          <li
+            key={`${show.rangeStart}-${show.name}-${show.theater}`}
+            className="flex items-baseline gap-3 border-b border-gray-100 py-2 last:border-0"
+          >
+            {/* Show name — linked to info page when URL is available */}
+            {show.url ? (
+              <a
+                href={show.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 text-sm font-medium leading-snug hover:underline"
+              >
+                {show.name}
+              </a>
+            ) : (
+              <span className="flex-1 text-sm font-medium leading-snug">{show.name}</span>
+            )}
+
+            {/* Theater name (with optional stage) */}
+            <span className="shrink-0 text-xs text-gray-400">
+              {show.stage ? `${show.theater} · ${show.stage}` : show.theater}
+            </span>
+
+            {/* Date range label, e.g. "1.3.–1.5.2026" */}
+            <span className="shrink-0 text-xs text-gray-400">
+              {formatRangeLabel(show.rangeStart, show.rangeEnd)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
