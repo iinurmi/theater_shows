@@ -68,7 +68,7 @@ migration later and to stay compatible with the latest `@supabase/ssr` client.
 
 **Why:** The Linked Events API returns both discrete performances (duration ≤ 24 h) and open-ended "run-period" entries (e.g., "show runs 1.3.–1.5.2026", duration > 24 h). Previously these were discarded. They're now collected as `RangeShow` and displayed in a dedicated section below the daily calendar, giving users visibility into longer-running productions.
 
-**Rule:** Duration > 24 h → `toRangeShow()` → `RangeShow[]`. Duration ≤ 24 h → `toShow()` → `Show[]`. `fetchShowsForBounds` returns `{ shows, rangeShows }` (the `FetchResult` type). Dedup: any `RangeShow` whose `name` matches a timed `Show` in the same week is excluded (heuristic, acceptable false-positive rate). Children's filter applies to both lists.
+**Rule:** Duration > 24 h → `toRangeShow()` → `RangeShow[]`. Duration ≤ 24 h → `toShow()` → `Show[]`. `fetchShowsForBounds` returns `{ shows, rangeShows }` (the `FetchResult` type). Dedup: any `RangeShow` whose `name` matches a timed `Show` in the same week is excluded (heuristic, acceptable false-positive rate).
 
 ---
 
@@ -98,17 +98,9 @@ Multi-purpose venues (Savoy-teatteri, Stoa, Vuotalo) removed entirely — they p
 
 ---
 
-## 2026-03-07 — Children's show detection: dual signal (keyword + age)
+## 2026-03-07 — `include=keywords` not used in API query
 
-**Why:** The `yso:p4354` keyword is inconsistently applied by Helsinki event publishers — some children's shows carry no keyword at all. Using `audience_max_age <= 12` as a second signal catches more shows. Both signals are OR'd; accepted limitation is that some shows slip through either way.
-
-**Rule:** `isChildrensShow` in `toShow()` is true if `keywords` contains `yso:p4354` OR `audience_max_age` is a number `≤ 12`. Do not use only one signal.
-
----
-
-## 2026-03-07 — `include=keywords` removed; non-expanded keyword objects suffice
-
-**Why:** Adding `include=keywords` as a second `include` param alongside `include=location` caused the LinkedEvents API to stop expanding the location object (it silently honoured only one). This broke venue resolution ("Unknown venue" for all shows). Non-expanded keyword objects already contain the `id` field (e.g. `"id": "yso:p4354"`) needed for children's show detection — expanding keywords is unnecessary.
+**Why:** Adding `include=keywords` as a second `include` param alongside `include=location` caused the LinkedEvents API to stop expanding the location object (it silently honoured only one), breaking venue resolution ("Unknown venue" for all shows). We don't need expanded keyword objects for anything, so this param is omitted entirely.
 
 **Rule:** Only `include=location` is passed to the Linked Events API. Do not add `include=keywords`; it breaks venue lookup.
 
@@ -122,11 +114,11 @@ Multi-purpose venues (Savoy-teatteri, Stoa, Vuotalo) removed entirely — they p
 
 ---
 
-## 2026-03-07 — Children's filter: URL param `?children=hide`, server-side
+## 2026-03-07 — Children's show filter removed; detection unreliable
 
-**Why:** Consistent with the existing `?week=` pattern — URL is single source of truth. Filter applied server-side in `app/page.tsx` after fetch (no client-side filtering, no extra round-trip). Absence of the param means "show all" so default experience requires no URL manipulation.
+**Why:** The `yso:p4354` keyword and `audience_max_age` signals are inconsistently applied by Helsinki event publishers — detection gave false positives and false negatives. The filter created UI noise without reliable value. Full removal (types, API logic, component, URL param) was chosen over improving detection; data quality is too inconsistent to fix at the source.
 
-**Rule:** `children` param validated strictly (`=== 'hide'`). Any other value treated as "show all". `ChildrenFilter` client component uses `router.replace` to avoid back-stack pollution.
+**Rule:** No `isChildrensShow` field on `Show` or `RangeShow`. No `?children=` URL param. Do not re-add a children's filter without a reliable detection signal.
 
 ---
 
@@ -137,6 +129,14 @@ Multi-purpose venues (Savoy-teatteri, Stoa, Vuotalo) removed entirely — they p
 **Alignment gotcha:** When `showWeekNumber` is enabled, both the header row (`weekdays`) and data rows (`week`) must have `flex` in `classNames`, and `week_number_header` must have `w-8` to match the week-number column width. Without this, day-name headers collapse to content width and misalign with the date cells below.
 
 **Rule:** Do not use a dedicated week-picker library. `DayPicker` with `mode="range"` + day-snap is the pattern. Styling via `classNames` prop only — no custom CSS file. `weekdays: 'flex'` and `week_number_header: 'w-8'` are required when `showWeekNumber` is set.
+
+---
+
+## 2026-03-07 — `location_extra_info.fi` capped at 60 chars; longer = discard
+
+**Why:** The Linked Events API sometimes returns long accessibility descriptions (paragraphs) in `location_extra_info.fi` instead of a short stage name. Showing a truncated accessibility essay as the stage label is misleading. Discarding any value over 60 chars shows nothing — which is better than wrong.
+
+**Rule:** In `extractCommonFields()`, if `rawStageValue.length > 60` set it to `undefined`. Real stage names (e.g. "Suuri näyttämö", "Pieni näyttämö") are well under 60 chars.
 
 ---
 
@@ -161,6 +161,17 @@ Multi-purpose venues (Savoy-teatteri, Stoa, Vuotalo) removed entirely — they p
 **Why:** Without a timeout, a slow or hung Linked Events API response blocks the Next.js server render indefinitely for every in-flight user request. `AbortSignal.timeout(ms)` is built-in to Node 17+ (no extra imports) and throws `AbortError` after the specified duration, which the existing `try/catch` in `page.tsx` converts to a user-facing error banner.
 
 **Rule:** All `fetch()` calls to external APIs use `signal: AbortSignal.timeout(8_000)`. 8 s is generous for a paginated JSON API; lower if the API proves consistently fast. See `FETCH_TIMEOUT_MS` constant in `lib/linkedevents.ts`.
+
+---
+
+## 2026-03-07 — "Today" shortcut in WeekNav: bar button + popup button
+
+**Why:** When navigating to past/future weeks, there was no one-click way back to the current rolling window.
+
+**Rule:**
+- Bar button: rendered below the nav bar only when `!isCurrentWeek` (`isoWeek === getCurrentIsoWeek()`). Calls `navigate(getCurrentIsoWeek())`.
+- Popup button: always shown at the top of the calendar popup. Calls `setCalendarMonth(new Date())` + `navigate(getCurrentIsoWeek())` + `handleClose()`.
+- `calendarMonth` is controlled state (not `defaultMonth`) so the popup button can sync the displayed month without reopening the picker.
 
 ---
 

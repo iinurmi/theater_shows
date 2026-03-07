@@ -16,7 +16,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
-import { prevWeek, nextWeek, formatWeekLabel, formatIsoWeek, getWeekBounds } from '@/lib/week';
+import {
+  prevWeek,
+  nextWeek,
+  formatWeekLabel,
+  formatIsoWeek,
+  getWeekBounds,
+  getCurrentIsoWeek,
+} from '@/lib/week';
 
 type WeekNavProps = {
   isoWeek: string; // e.g. "2026-W10"
@@ -31,6 +38,14 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
   /** Whether the calendar popup is open. */
   const [isOpen, setIsOpen] = useState(false);
 
+  /**
+   * Controlled month shown in the DayPicker.
+   * Initialised to the month of the currently selected week so the picker
+   * opens on the right month. Synced via useEffect whenever isoWeek changes
+   * (e.g. prev/next navigation while the popup is open).
+   */
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => getWeekBounds(isoWeek).start);
+
   /** Ref for the popup container — used to detect clicks outside. */
   const popupRef = useRef<HTMLDivElement>(null);
   /** Ref for the label button — excluded from outside-click detection. */
@@ -42,6 +57,11 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
     // replace instead of push — week navigation shouldn't pollute the back stack
     router.replace(`?${params.toString()}`);
   }
+
+  /** Sync the displayed calendar month whenever the week prop changes. */
+  useEffect(() => {
+    setCalendarMonth(getWeekBounds(isoWeek).start);
+  }, [isoWeek]);
 
   /** Close popup on click-outside or Escape key. */
   const handleClose = useCallback(() => setIsOpen(false), []);
@@ -73,6 +93,9 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
     };
   }, [isOpen, handleClose]);
 
+  /** True when the displayed week is the current ISO week. */
+  const isCurrentWeek = isoWeek === getCurrentIsoWeek();
+
   /**
    * Compute ±3 month date limits for the calendar.
    * Computed at render time on the client so it reflects the user's local clock.
@@ -100,7 +123,8 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
   }
 
   return (
-    // Relative container so the absolute popup is positioned under the label
+    <>
+    {/* Relative container so the absolute popup is positioned under the label */}
     <nav
       aria-label="Week navigation"
       className="relative flex items-center justify-between gap-4 py-4"
@@ -134,6 +158,19 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
           // Centred below the label; z-50 floats above page content
           className="absolute left-1/2 top-full z-50 mt-1 -translate-x-1/2 rounded-lg bg-white shadow-lg ring-1 ring-gray-200"
         >
+          {/* Today shortcut inside the popup — jumps calendar to current month and navigates */}
+          <div className="flex justify-end px-3 pt-2">
+            <button
+              onClick={() => {
+                setCalendarMonth(new Date());
+                navigate(getCurrentIsoWeek());
+                handleClose();
+              }}
+              className="text-xs font-medium text-blue-600 hover:underline"
+            >
+              ↩ Today
+            </button>
+          </div>
           <DayPicker
             mode="range"
             // Show week numbers so users can orient themselves
@@ -154,8 +191,9 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
               sunday.setDate(monday.getDate() + 6);
               handleWeekSelect({ from: monday, to: sunday });
             }}
-            // Default to the month of the currently selected week
-            defaultMonth={selectedFrom}
+            // Controlled month so "Today" button can sync the displayed month
+            month={calendarMonth}
+            onMonthChange={setCalendarMonth}
             // Tailwind-friendly inline styles via classNames prop
             classNames={{
               root: 'p-3 select-none',
@@ -196,5 +234,18 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
         →
       </button>
     </nav>
+
+    {/* Today shortcut — only visible when browsing a non-current week */}
+    {!isCurrentWeek && (
+      <div className="flex justify-center -mt-2 pb-1">
+        <button
+          onClick={() => navigate(getCurrentIsoWeek())}
+          className="text-xs font-medium text-blue-600 hover:underline"
+        >
+          ↩ Today
+        </button>
+      </div>
+    )}
+    </>
   );
 }

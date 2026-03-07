@@ -22,12 +22,11 @@ import {
   isSameDay,
 } from '@/lib/week';
 import { WeekNav } from '@/components/WeekNav';
-import { ChildrenFilter } from '@/components/ChildrenFilter';
 import { DaySection } from '@/components/DaySection';
 import { RunningThisWeek } from '@/components/RunningThisWeek';
 
 type PageProps = {
-  searchParams: Promise<{ week?: string; children?: string }>;
+  searchParams: Promise<{ week?: string }>;
 };
 
 /** Validate that a string is a well-formed ISO 8601 week (e.g. "2026-W10"). */
@@ -53,14 +52,11 @@ function groupShowsByDay(shows: Show[], days: Date[]): Map<string, Show[]> {
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const { week, children } = await searchParams;
+  const { week } = await searchParams;
 
   // Fall back to current week if the param is absent or malformed
   const isoWeek =
     week && isValidIsoWeek(week) ? week : getCurrentIsoWeek();
-
-  // Strictly validate the children param — only 'hide' is accepted
-  const hideChildren = children === 'hide';
 
   // Determine whether we're on the current ISO week to apply the rolling window.
   // getTodayHelsinki() ensures the date is correct even between 00:00–03:00 Helsinki
@@ -88,12 +84,6 @@ export default async function HomePage({ searchParams }: PageProps) {
       err instanceof Error ? err.message : 'Failed to load shows. Please try again later.';
   }
 
-  // Apply children's show filter after fetch, before rendering
-  if (hideChildren) {
-    shows = shows.filter((s) => !s.isChildrensShow);
-    rangeShows = rangeShows.filter((s) => !s.isChildrensShow);
-  }
-
   // Dedup: remove range shows whose name already appears as a timed performance
   // in the week (heuristic — same name at different venues would be incorrectly deduped).
   const timedShowNames = new Set(shows.map((s) => s.name));
@@ -114,11 +104,6 @@ export default async function HomePage({ searchParams }: PageProps) {
           isoWeek={isoWeek}
           weekLabel={isCurrentWeek ? formatRollingWindowLabel(today) : undefined}
         />
-      </Suspense>
-
-      {/* Children's show filter — client component, must be in Suspense */}
-      <Suspense fallback={<div className="h-6" />}>
-        <ChildrenFilter />
       </Suspense>
 
       {/* API error banner */}

@@ -77,17 +77,11 @@ function stripTheaterPrefix(theater: string, stage: string | undefined): string 
   return stage;
 }
 
-/** YSO keyword ID that marks children's shows in the Helsinki open data taxonomy. */
-const CHILDRENS_SHOW_KEYWORD = 'yso:p4354';
-
-/** Max audience age that we treat as a children's show when `audience_max_age` is set. */
-const CHILDRENS_MAX_AGE = 12;
-
 /**
- * Shared helper: extract venue info and children's show flags from a raw event.
+ * Shared helper: extract venue info from a raw event.
  * Used by both toShow and toRangeShow to avoid duplication.
  */
-function extractCommonFields(event: LinkedEvent): Pick<Show, 'name' | 'theater' | 'stage' | 'url' | 'isChildrensShow'> {
+function extractCommonFields(event: LinkedEvent): Pick<Show, 'name' | 'theater' | 'stage' | 'url'> {
   const locationId = event.location?.id;
   const venueConfig = locationId ? VENUES[locationId] : undefined;
 
@@ -95,21 +89,17 @@ function extractCommonFields(event: LinkedEvent): Pick<Show, 'name' | 'theater' 
     ? (event.info_url.fi ?? event.info_url.en ?? event.info_url.sv)
     : undefined;
 
-  const hasChildrensKeyword =
-    event.keywords?.some((kw) => kw.id === CHILDRENS_SHOW_KEYWORD) ?? false;
-  const hasChildrensAge =
-    typeof event.audience_max_age === 'number' &&
-    event.audience_max_age <= CHILDRENS_MAX_AGE;
-
   const theater = venueConfig?.theater ?? pickName(event.location?.name, 'Unknown venue');
-  const rawStage = event.location_extra_info?.fi;
+  // Discard long strings — they are accessibility descriptions, not stage names.
+  // Real stage names (e.g. "Suuri näyttämö") are well under 60 characters.
+  const rawStageValue = event.location_extra_info?.fi;
+  const rawStage = rawStageValue && rawStageValue.length <= 60 ? rawStageValue : undefined;
 
   return {
     name: pickName(event.name, 'Unnamed show'),
     theater,
     stage: stripTheaterPrefix(theater, rawStage),
     url: resolvedUrl,
-    isChildrensShow: hasChildrensKeyword || hasChildrensAge,
   };
 }
 
@@ -198,7 +188,7 @@ async function fetchShowsForBounds(start: Date, end: Date): Promise<FetchResult>
       if (show) shows.push(show);
     }
 
-    hasMore = payload.meta.next !== null;
+    hasMore = payload.meta.next != null;
     page++;
   }
 

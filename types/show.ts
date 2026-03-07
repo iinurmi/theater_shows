@@ -10,8 +10,6 @@ export type Show = {
   endTime?: string; // ISO 8601 — absent when the API doesn't publish an end time
   /** External info page URL, if provided by the API. */
   url?: string;
-  /** True when the event is tagged yso:p4354 or has audience_max_age ≤ 12. */
-  isChildrensShow: boolean;
 };
 
 /**
@@ -28,7 +26,6 @@ export type RangeShow = {
   /** ISO 8601 — end of the production run */
   rangeEnd: string;
   url?: string;
-  isChildrensShow: boolean;
 };
 
 /**
