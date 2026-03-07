@@ -159,24 +159,24 @@ export function formatRollingWindowLabel(today: Date): string {
 }
 
 /**
- * Return an array of 8 Date objects for the rolling window anchored on `today`:
- *   yesterday, today, and the 6 days after today (8 days total).
+ * Return an array of 7 Date objects for the rolling window anchored on `today`:
+ *   today and the 6 days after today (7 days total).
  *
  * Each date is set to midnight local time.
  * Used when the active week is the current ISO week.
  */
 export function getRollingWindowDays(today: Date): Date[] {
-  return Array.from({ length: 8 }, (_, i) => {
+  return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
     d.setHours(0, 0, 0, 0);
-    d.setDate(today.getDate() - 1 + i); // start from yesterday (i=0)
+    d.setDate(today.getDate() + i); // start from today (i=0)
     return d;
   });
 }
 
 /**
  * Return { start, end } ISO date strings (YYYY-MM-DD) for the rolling window
- * anchored on `today` (yesterday … today+6).
+ * anchored on `today` (today … today+6, 7 days total).
  *
  * These strings are used to build the Linked Events API date-range query.
  * Using YYYY-MM-DD (Helsinki local date) avoids UTC-offset surprises because
@@ -184,8 +184,7 @@ export function getRollingWindowDays(today: Date): Date[] {
  */
 export function getRollingWindowBounds(today: Date): { start: Date; end: Date } {
   const start = new Date(today);
-  start.setHours(0, 0, 0, 0);
-  start.setDate(today.getDate() - 1); // yesterday
+  start.setHours(0, 0, 0, 0); // today at midnight
 
   const end = new Date(today);
   end.setHours(23, 59, 59, 999);

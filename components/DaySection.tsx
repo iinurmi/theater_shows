@@ -36,7 +36,7 @@ export function DaySection({ date, shows }: DaySectionProps) {
   return (
     <section
       aria-label={formatDayLabel(date)}
-      className={`rounded-lg px-3 py-3 ${isToday ? 'bg-amber-50' : ''}`}
+      className="rounded-lg px-3 py-3"
     >
       {/* Day header */}
       <h2

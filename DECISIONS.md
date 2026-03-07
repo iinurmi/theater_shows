@@ -114,11 +114,11 @@ Multi-purpose venues (Savoy-teatteri, Stoa, Vuotalo) removed entirely — they p
 
 ---
 
-## 2026-03-07 — Rolling 8-day window for current week view
+## 2026-03-07 — Rolling 7-day window for current week view (today + 6)
 
-**Why:** Fixed Mon–Sun hides shows "on right now" mid-week and doesn't surface upcoming shows across the weekend boundary. An 8-day window (yesterday + today + 6 ahead) shows what's relevant without navigation. Past/future weeks keep Mon–Sun — historical browsing benefits from a stable, predictable grid.
+**Why:** Fixed Mon–Sun hides shows "on right now" mid-week and doesn't surface upcoming shows across the weekend boundary. A 7-day window (today + 6 days ahead) shows what's relevant without navigation — yesterday is already gone, no point displaying it. Past/future weeks keep Mon–Sun — historical browsing benefits from a stable, predictable grid.
 
-**Rule:** When `isoWeek === getCurrentIsoWeek()`, use `getRollingWindowDays(today)` for displayed days and `getRollingWindowBounds(today)` for the API fetch. The `?week=` URL param is unchanged. The window may span two ISO weeks, so the fetch uses `fetchShowsForDateRange(start, end)` with explicit `Date` bounds rather than `fetchShowsForWeek`. Always derive `today` from `getTodayHelsinki()`, not `new Date()`.
+**Rule:** When `isoWeek === getCurrentIsoWeek()`, use `getRollingWindowDays(today)` for displayed days and `getRollingWindowBounds(today)` for the API fetch. Both functions return a 7-day range starting from `today` (inclusive). The `?week=` URL param is unchanged. The window may span two ISO weeks, so the fetch uses `fetchShowsForDateRange(start, end)` with explicit `Date` bounds rather than `fetchShowsForWeek`. Always derive `today` from `getTodayHelsinki()`, not `new Date()`.
 
 ---
 

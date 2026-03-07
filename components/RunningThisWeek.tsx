@@ -40,10 +40,13 @@ export function RunningThisWeek({ rangeShows }: RunningThisWeekProps) {
   if (rangeShows.length === 0) return null;
 
   return (
-    <section aria-label="Running shows this week" className="mt-2 rounded-lg bg-slate-50 px-3 py-3">
-      <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-gray-400">
-        Running shows this week
+    <section aria-label="Currently running" className="mt-2 mb-4 rounded-lg bg-violet-50 px-3 py-3">
+      <h2 className="mb-1 text-sm font-medium uppercase tracking-wide text-gray-400">
+        Currently running
       </h2>
+      <p className="mb-2 text-xs text-gray-400">
+        Multi-day productions — check theater for show times
+      </p>
 
       <ul>
         {rangeShows.map((show) => (

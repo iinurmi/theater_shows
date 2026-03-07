@@ -45,5 +45,8 @@ Thumbs.db
 # Local issue tracking (will migrate to Linear/Jira later)
 issues/
 
+# Local planning files
+plans/
+
 # Claude Code — machine-local settings (permissions, tool config)
 .claude/settings.local.json
