@@ -130,6 +130,16 @@ Multi-purpose venues (Savoy-teatteri, Stoa, Vuotalo) removed entirely — they p
 
 ---
 
+## 2026-03-07 — Week picker: `react-day-picker` with `mode="range"` + `onDayClick` snap
+
+**Why:** `react-day-picker` v9 removed the dedicated week-selection mode. Using `mode="range"` with an `onDayClick` handler that snaps the clicked day to its Mon–Sun range achieves identical UX. The library is Tailwind-compatible (no CSS-in-JS), ships its own types, and works cross-browser including Safari.
+
+**Alignment gotcha:** When `showWeekNumber` is enabled, both the header row (`weekdays`) and data rows (`week`) must have `flex` in `classNames`, and `week_number_header` must have `w-8` to match the week-number column width. Without this, day-name headers collapse to content width and misalign with the date cells below.
+
+**Rule:** Do not use a dedicated week-picker library. `DayPicker` with `mode="range"` + day-snap is the pattern. Styling via `classNames` prop only — no custom CSS file. `weekdays: 'flex'` and `week_number_header: 'w-8'` are required when `showWeekNumber` is set.
+
+---
+
 ## 2026-03-01 — Named exports for all React components
 
 **Why:** Consistent with TypeScript best practices and easier to tree-shake. Default exports make
