@@ -18,9 +18,17 @@ migration later and to stay compatible with the latest `@supabase/ssr` client.
 
 ---
 
+## 2026-03-07 — CHANGELOG.md removed; commit messages derived from git diff
+
+**Why:** `CHANGELOG.md` duplicated information already in `git log`, requiring manual maintenance before every commit. Deriving the commit message directly from `git diff` is always accurate and eliminates the overhead. The `/commit` Step 3 checkpoint is preserved but repurposed to summarise the diff.
+
+**Rule:** No CHANGELOG file. `/commit` Step 3 runs `git diff HEAD` and produces a bullet summary; Step 5 drafts the Conventional Commit from that summary.
+
+---
+
 ## 2026-03-01 — `/document` runs before `/commit`, not after
 
-**Why:** Documentation (CHANGELOG, DECISIONS, CLAUDE.md) belongs in the same commit as the code it describes. Running `/document` first means the commit message can be derived directly from the CHANGELOG entry — no duplication of thought. Documenting after would split context across two commits.
+**Why:** Documentation (DECISIONS.md, CLAUDE.md) belongs in the same commit as the code it describes. Running `/document` first means the commit message can be derived directly from the diff — no duplication of thought. Documenting after would split context across two commits.
 
 **Rule:** Workflow order is always `/dev` → `/review` → `/document` → `/commit`.
 

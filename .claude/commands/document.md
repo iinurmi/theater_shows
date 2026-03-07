@@ -17,10 +17,6 @@ For each changed file:
 
 ## 3. Update Relevant Documentation
 
-- **CHANGELOG.md**: Add entry under "Unreleased" section
-  - Use categories: Added, Changed, Fixed, Security, Removed
-  - Be concise, user-facing language
-
 - **DECISIONS.md**: Add an entry if the change involved a significant architectural or infrastructure choice
   - Format: `## YYYY-MM-DD — [Title]` with a short "Why" paragraph
   - Only for non-obvious choices where future developers would ask "why did we do it this way?"

@@ -35,12 +35,15 @@ git status --short
 
 ---
 
-## Step 3 — Check CHANGELOG
+## Step 3 — Summarise Diff
 
-Read `CHANGELOG.md`. Look for content under `## [Unreleased]`.
+Run:
+```bash
+git diff --cached HEAD
+```
+(If nothing is staged yet, run `git diff HEAD` instead.)
 
-- If the section is **empty or missing**: warn "⚠️ CHANGELOG [Unreleased] is empty — run `/document` first. Proceed anyway? (yes/no)" and wait.
-- If content exists: extract the bullet points — you will use them for the commit message in Step 5.
+Read the diff and produce a short human-readable summary of what changed — a few bullet points covering the key additions, removals, and modifications. You will use this summary in Step 5 to draft the commit message.
 
 ---
 
@@ -68,7 +71,7 @@ Confirm with user: "Stage looks correct? (yes/no)"
 
 ## Step 5 — Propose Commit Message
 
-Using the CHANGELOG [Unreleased] content from Step 3, draft a **Conventional Commit** message:
+Using the diff summary produced in Step 3, draft a **Conventional Commit** message:
 
 Format:
 ```
