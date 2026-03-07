@@ -1,6 +1,6 @@
-# My App
+# Helsinki Theater Shows
 
-A full-stack web application built with Next.js, TypeScript, Supabase, and Tailwind CSS.
+Weekly theater performance listings for the Helsinki area, powered by the City of Helsinki Linked Events API.
 
 ## Getting Started
 
@@ -8,15 +8,14 @@ A full-stack web application built with Next.js, TypeScript, Supabase, and Tailw
 
 - Node.js v20+ — [download here](https://nodejs.org/en/download)
 - A [Supabase](https://supabase.com) account (free)
-- A [GitHub](https://github.com) account
 
 ### Installation
 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-   cd YOUR_REPO
+   git clone https://github.com/iinurmi/theater_shows.git
+   cd theater_shows
    ```
 
 2. Install dependencies:
@@ -54,6 +53,7 @@ A full-stack web application built with Next.js, TypeScript, Supabase, and Tailw
 - **Language**: TypeScript
 - **Database + Auth**: [Supabase](https://supabase.com)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com)
+- **Data source**: [City of Helsinki Linked Events API](https://api.hel.fi/linkedevents/v1/)
 
 ## Project Conventions
 
@@ -61,7 +61,4 @@ See [ONBOARDING.md](./ONBOARDING.md) for full setup instructions including Claud
 
 See [CLAUDE.md](./CLAUDE.md) for coding conventions, architecture decisions, and Claude Code instructions.
 
-## Deployment
-
-Connect this repository to [Vercel](https://vercel.com) — it auto-deploys on every push to `main`.
-Add your environment variables in the Vercel project dashboard under Settings > Environment Variables.
+See [DECISIONS.md](./DECISIONS.md) for the architectural decision log.

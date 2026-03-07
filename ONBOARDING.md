@@ -1,4 +1,4 @@
-# Onboarding Guide — First Claude App
+# Onboarding Guide — Helsinki Theater Shows
 
 > For Claude Code: read this file when helping with initial setup on a new machine.
 > It covers everything needed to go from a fresh clone to a running dev environment.
@@ -28,8 +28,8 @@ git --version
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/iinurmi/Claude_setup_app.git
-cd Claude_setup_app
+git clone https://github.com/iinurmi/theater_shows.git
+cd theater_shows
 ```
 
 ### 2. Install dependencies

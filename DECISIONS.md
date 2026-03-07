@@ -44,7 +44,7 @@ migration later and to stay compatible with the latest `@supabase/ssr` client.
 
 **Why:** SSH host key for `github.com` was not present in `~/.ssh/known_hosts` on the dev machine, causing `git push` to fail with "Host key verification failed". HTTPS requires no key setup and works immediately with GitHub credential manager.
 
-**Rule:** Keep `origin` as HTTPS (`https://github.com/iinurmi/Claude_setup_app.git`). To switch to SSH later: add GitHub's public key via `ssh-keyscan github.com >> ~/.ssh/known_hosts`, add your SSH key to GitHub, then `git remote set-url origin git@github.com:iinurmi/Claude_setup_app.git`.
+**Rule:** Keep `origin` as HTTPS (`https://github.com/iinurmi/theater_shows.git`). To switch to SSH later: add GitHub's public key via `ssh-keyscan github.com >> ~/.ssh/known_hosts`, add your SSH key to GitHub, then `git remote set-url origin git@github.com:iinurmi/theater_shows.git`.
 
 ---
 
