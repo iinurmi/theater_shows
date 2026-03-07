@@ -48,8 +48,32 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
 
   /** Ref for the popup container — used to detect clicks outside. */
   const popupRef = useRef<HTMLDivElement>(null);
-  /** Ref for the label button — excluded from outside-click detection. */
+  /** Ref for the label button in the main nav — excluded from outside-click detection. */
   const triggerRef = useRef<HTMLButtonElement>(null);
+  /** Ref for the label button in the sticky bar — also excluded from outside-click detection. */
+  const stickyTriggerRef = useRef<HTMLButtonElement>(null);
+
+  /** Ref attached to the <nav> element to observe its viewport visibility. */
+  const navRef = useRef<HTMLElement>(null);
+  /**
+   * True while the main <nav> is intersecting the viewport.
+   * When false (user has scrolled past), the sticky bottom bar is shown.
+   */
+  const [isNavVisible, setIsNavVisible] = useState(true);
+
+  /** Track whether the main nav is in the viewport via IntersectionObserver. */
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsNavVisible(entry.isIntersecting),
+      // Fire as soon as any part of the nav leaves/enters the viewport
+      { threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   function navigate(targetWeek: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -74,13 +98,12 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
     }
 
     function onPointerDown(e: MouseEvent) {
-      // Close if the click is outside both the trigger and the popup
-      if (
-        popupRef.current &&
-        !popupRef.current.contains(e.target as Node) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(e.target as Node)
-      ) {
+      // Close if the click is outside the popup and both trigger buttons
+      const target = e.target as Node;
+      const insidePopup = popupRef.current?.contains(target) ?? false;
+      const insideTrigger = triggerRef.current?.contains(target) ?? false;
+      const insideStickyTrigger = stickyTriggerRef.current?.contains(target) ?? false;
+      if (!insidePopup && !insideTrigger && !insideStickyTrigger) {
         handleClose();
       }
     }
@@ -126,6 +149,7 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
     <>
     {/* Relative container so the absolute popup is positioned under the label */}
     <nav
+      ref={navRef}
       aria-label="Week navigation"
       className="relative flex items-center justify-between gap-4 py-4"
     >
@@ -155,8 +179,13 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
           ref={popupRef}
           role="dialog"
           aria-label="Pick a week"
-          // Centred below the label; z-50 floats above page content
-          className="absolute left-1/2 top-full z-50 mt-1 -translate-x-1/2 rounded-lg bg-white shadow-lg ring-1 ring-gray-200"
+          // When nav is visible: absolute below the label. When sticky bar is shown:
+          // fixed below the sticky bar (~52 px from top) so popup stays on-screen.
+          className={`z-50 -translate-x-1/2 rounded-lg bg-white shadow-lg ring-1 ring-gray-200 ${
+            isNavVisible
+              ? 'absolute left-1/2 top-full mt-1'
+              : 'fixed left-1/2 top-[52px] mt-1'
+          }`}
         >
           {/* Today shortcut inside the popup — jumps calendar to current month and navigates */}
           <div className="flex justify-end px-3 pt-2">
@@ -235,6 +264,45 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
       </button>
     </nav>
 
+    {/*
+     * Sticky top bar — shown on mobile only (md:hidden) when the main nav
+     * has been scrolled out of view. Provides quick prev/next access without
+     * scrolling back to the top.
+     */}
+    {!isNavVisible && (
+      <div
+        className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-2 md:hidden"
+        aria-label="Quick week navigation"
+      >
+        <button
+          onClick={() => navigate(prevWeek(isoWeek))}
+          aria-label="Previous week"
+          className="rounded px-4 py-2 text-xl font-medium hover:bg-gray-100 active:bg-gray-200"
+        >
+          ←
+        </button>
+
+        {/* Week label — opens the same calendar popup as the main nav */}
+        <button
+          ref={stickyTriggerRef}
+          onClick={() => setIsOpen((prev) => !prev)}
+          aria-expanded={isOpen}
+          aria-haspopup="dialog"
+          className="rounded px-2 py-1 text-base font-semibold hover:bg-gray-100 active:bg-gray-200"
+        >
+          {weekLabel ?? formatWeekLabel(isoWeek)} ▾
+        </button>
+
+        <button
+          onClick={() => navigate(nextWeek(isoWeek))}
+          aria-label="Next week"
+          className="rounded px-4 py-2 text-xl font-medium hover:bg-gray-100 active:bg-gray-200"
+        >
+          →
+        </button>
+      </div>
+    )}
+
     {/* Today shortcut — only visible when browsing a non-current week */}
     {!isCurrentWeek && (
       <div className="flex justify-center -mt-2 pb-1">
@@ -242,7 +310,7 @@ export function WeekNav({ isoWeek, weekLabel }: WeekNavProps) {
           onClick={() => navigate(getCurrentIsoWeek())}
           className="text-xs font-medium text-blue-600 hover:underline"
         >
-          ↩ Today
+          ↩ Back to Today
         </button>
       </div>
     )}

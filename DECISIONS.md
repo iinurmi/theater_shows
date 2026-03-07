@@ -169,9 +169,27 @@ Multi-purpose venues (Savoy-teatteri, Stoa, Vuotalo) removed entirely — they p
 **Why:** When navigating to past/future weeks, there was no one-click way back to the current rolling window.
 
 **Rule:**
-- Bar button: rendered below the nav bar only when `!isCurrentWeek` (`isoWeek === getCurrentIsoWeek()`). Calls `navigate(getCurrentIsoWeek())`.
-- Popup button: always shown at the top of the calendar popup. Calls `setCalendarMonth(new Date())` + `navigate(getCurrentIsoWeek())` + `handleClose()`.
+- Bar button (page level): rendered below the nav bar only when `!isCurrentWeek`. Copy: "↩ Back to Today". Calls `navigate(getCurrentIsoWeek())`.
+- Popup button: always shown at the top of the calendar popup. Copy: "↩ Today". Calls `setCalendarMonth(new Date())` + `navigate(getCurrentIsoWeek())` + `handleClose()`.
 - `calendarMonth` is controlled state (not `defaultMonth`) so the popup button can sync the displayed month without reopening the picker.
+
+---
+
+## 2026-03-07 — Sticky WeekNav bar: IntersectionObserver, full mini-nav, fixed popup
+
+**Why:** On mobile, once the user scrolls past the week nav there's no quick way to change weeks without scrolling back up.
+
+**Approach:** `IntersectionObserver` on the main `<nav>` ref — zero deps, no scroll-event polling. When the nav leaves the viewport, a `fixed top-0` bar appears; when it re-enters, the bar disappears.
+
+**Scope:** Sticky bar shows ← [week label ▾] → (full mini-nav). The week label opens the same calendar popup as the main nav, sharing `isOpen` state and `handleWeekSelect`. No Today button in the sticky bar.
+
+**Popup positioning:** The popup is inside the `<nav>` (relative-positioned), so `absolute top-full` works when the main nav is visible. When `!isNavVisible`, the popup switches to `fixed top-[52px]` to anchor it below the sticky bar. `52px` matches the sticky bar's rendered height (`py-2` + `text-base` button). If bar height changes, update this value.
+
+**Outside-click detection:** Two trigger refs (`triggerRef` for main nav, `stickyTriggerRef` for sticky bar) are both excluded from the `pointerdown` close handler. `stickyTriggerRef.current` is null when the bar is unmounted; the `?? false` fallbacks guard against this.
+
+**Desktop:** `md:hidden` on the sticky bar — `IntersectionObserver` fires correctly on desktop too, but the bar is CSS-hidden so it never renders visually.
+
+**Location:** Entirely inside `components/WeekNav.tsx`. No new files or components.
 
 ---
 
