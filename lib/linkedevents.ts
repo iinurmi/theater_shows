@@ -35,13 +35,13 @@ function buildUrl(start: Date, end: Date, page: number): string {
   const params = new URLSearchParams({
     start: start.toISOString(),
     end: end.toISOString(),
-    include: 'location',
     sort: 'start_time',
     page_size: String(PAGE_SIZE),
     page: String(page),
   });
   // location is appended manually to avoid URLSearchParams encoding commas and
   // colons in venue IDs (e.g. tprek:20879,tprek:9302 must not become tprek%3A20879%2C...).
+  params.append('include', 'location');
   return `${BASE_URL}?location=${locationParam}&${params.toString()}`;
 }
 
@@ -57,6 +57,12 @@ function pickName(
   return nameMap.fi ?? nameMap.en ?? nameMap.sv ?? fallback;
 }
 
+/** YSO keyword ID that marks children's shows in the Helsinki open data taxonomy. */
+const CHILDRENS_SHOW_KEYWORD = 'yso:p4354';
+
+/** Max audience age that we treat as a children's show when `audience_max_age` is set. */
+const CHILDRENS_MAX_AGE = 12;
+
 /** Map a raw LinkedEvent to our internal Show type. Returns null if data is incomplete. */
 function toShow(event: LinkedEvent): Show | null {
   if (!event.start_time) return null;
@@ -70,6 +76,14 @@ function toShow(event: LinkedEvent): Show | null {
     ? (event.info_url.fi ?? event.info_url.en ?? event.info_url.sv)
     : undefined;
 
+  // Detect children's shows via keyword tag OR max-age cap.
+  // API tagging is inconsistent, so we use both signals; some shows may still slip through.
+  const hasChildrensKeyword =
+    event.keywords?.some((kw) => kw.id === CHILDRENS_SHOW_KEYWORD) ?? false;
+  const hasChildrensAge =
+    typeof event.audience_max_age === 'number' &&
+    event.audience_max_age <= CHILDRENS_MAX_AGE;
+
   return {
     name: pickName(event.name, 'Unnamed show'),
     theater: venueConfig?.theater ?? pickName(event.location?.name, 'Unknown venue'),
@@ -79,6 +93,7 @@ function toShow(event: LinkedEvent): Show | null {
     startTime: event.start_time,
     endTime: event.end_time ?? undefined,
     url: resolvedUrl,
+    isChildrensShow: hasChildrensKeyword || hasChildrensAge,
   };
 }
 

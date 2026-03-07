@@ -96,6 +96,30 @@ Multi-purpose venues (Savoy-teatteri, Stoa, Vuotalo) removed entirely — they p
 
 ---
 
+## 2026-03-07 — Children's show detection: dual signal (keyword + age)
+
+**Why:** The `yso:p4354` keyword is inconsistently applied by Helsinki event publishers — some children's shows carry no keyword at all. Using `audience_max_age <= 12` as a second signal catches more shows. Both signals are OR'd; accepted limitation is that some shows slip through either way.
+
+**Rule:** `isChildrensShow` in `toShow()` is true if `keywords` contains `yso:p4354` OR `audience_max_age` is a number `≤ 12`. Do not use only one signal.
+
+---
+
+## 2026-03-07 — `include=keywords` removed; non-expanded keyword objects suffice
+
+**Why:** Adding `include=keywords` as a second `include` param alongside `include=location` caused the LinkedEvents API to stop expanding the location object (it silently honoured only one). This broke venue resolution ("Unknown venue" for all shows). Non-expanded keyword objects already contain the `id` field (e.g. `"id": "yso:p4354"`) needed for children's show detection — expanding keywords is unnecessary.
+
+**Rule:** Only `include=location` is passed to the Linked Events API. Do not add `include=keywords`; it breaks venue lookup.
+
+---
+
+## 2026-03-07 — Children's filter: URL param `?children=hide`, server-side
+
+**Why:** Consistent with the existing `?week=` pattern — URL is single source of truth. Filter applied server-side in `app/page.tsx` after fetch (no client-side filtering, no extra round-trip). Absence of the param means "show all" so default experience requires no URL manipulation.
+
+**Rule:** `children` param validated strictly (`=== 'hide'`). Any other value treated as "show all". `ChildrenFilter` client component uses `router.replace` to avoid back-stack pollution.
+
+---
+
 ## 2026-03-01 — Named exports for all React components
 
 **Why:** Consistent with TypeScript best practices and easier to tree-shake. Default exports make

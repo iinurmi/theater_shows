@@ -14,10 +14,11 @@ import type { Show } from '@/types/show';
 import { fetchShowsForWeek } from '@/lib/linkedevents';
 import { getCurrentIsoWeek, getDaysOfWeek, isSameDay } from '@/lib/week';
 import { WeekNav } from '@/components/WeekNav';
+import { ChildrenFilter } from '@/components/ChildrenFilter';
 import { DaySection } from '@/components/DaySection';
 
 type PageProps = {
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ week?: string; children?: string }>;
 };
 
 /** Validate that a string is a well-formed ISO 8601 week (e.g. "2026-W10"). */
@@ -43,11 +44,14 @@ function groupShowsByDay(shows: Show[], days: Date[]): Map<string, Show[]> {
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const { week } = await searchParams;
+  const { week, children } = await searchParams;
 
   // Fall back to current week if the param is absent or malformed
   const isoWeek =
     week && isValidIsoWeek(week) ? week : getCurrentIsoWeek();
+
+  // Strictly validate the children param — only 'hide' is accepted
+  const hideChildren = children === 'hide';
 
   // Fetch shows server-side — no CORS issues, no client API exposure
   let shows: Show[] = [];
@@ -57,6 +61,11 @@ export default async function HomePage({ searchParams }: PageProps) {
   } catch (err) {
     fetchError =
       err instanceof Error ? err.message : 'Failed to load shows. Please try again later.';
+  }
+
+  // Apply children's show filter after fetch, before rendering
+  if (hideChildren) {
+    shows = shows.filter((s) => !s.isChildrensShow);
   }
 
   const days = getDaysOfWeek(isoWeek);
@@ -72,6 +81,11 @@ export default async function HomePage({ searchParams }: PageProps) {
       {/* Week navigation — client component, must be in Suspense */}
       <Suspense fallback={<div className="h-12" />}>
         <WeekNav isoWeek={isoWeek} />
+      </Suspense>
+
+      {/* Children's show filter — client component, must be in Suspense */}
+      <Suspense fallback={<div className="h-6" />}>
+        <ChildrenFilter />
       </Suspense>
 
       {/* API error banner */}

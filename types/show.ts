@@ -10,6 +10,8 @@ export type Show = {
   endTime?: string; // ISO 8601 — absent when the API doesn't publish an end time
   /** External info page URL, if provided by the API. */
   url?: string;
+  /** True when the event is tagged yso:p4354 or has audience_max_age ≤ 12. */
+  isChildrensShow: boolean;
 };
 
 /**
@@ -38,6 +40,15 @@ export type LinkedEvent = {
   location_extra_info: { fi?: string } | null;
   /** Localized URL to the show's info page. */
   info_url?: { fi?: string; en?: string; sv?: string } | null;
+  /**
+   * Keywords attached to the event. Each keyword has a `@id` URL and an `id`
+   * string (e.g. "yso:p4354" for children's shows).
+   */
+  keywords: Array<{ '@id': string; id: string }> | null;
+  /** Target audience upper age limit — null when not specified by the publisher. */
+  audience_max_age: number | null;
+  /** Target audience lower age limit — null when not specified by the publisher. */
+  audience_min_age: number | null;
 };
 
 /** Top-level Linked Events list-response envelope */
